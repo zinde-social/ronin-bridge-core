@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
-	"golang.org/x/crypto/sha3"
 	"math/big"
 	"os"
 	"reflect"
 	"sync"
+
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
+	"golang.org/x/crypto/sha3"
 
 	kmsUtils "github.com/axieinfinity/ronin-kms-client/utils"
 	"github.com/ethereum/go-ethereum"
@@ -51,7 +52,7 @@ type Utils interface {
 	Title(text string) string
 	NewEthClient(url string) (EthClient, error)
 	SendContractTransaction(signMethod ISign, chainId *big.Int, fn func(opts *bind.TransactOpts) (*types.Transaction, error)) (*types.Transaction, error)
-	SignTypedData(typedData core.TypedData, signMethod ISign) (hexutil.Bytes, error)
+	SignTypedData(typedData core.TypedData, chainId int64, withdrawalId int64, recipient common.Address, token common.Address, amount int64, fee int64, signMethod ISign) (hexutil.Bytes, error)
 	FilterLogs(client EthClient, opts *bind.FilterOpts, contractAddresses []common.Address, filteredMethods map[*abi.ABI]map[string]struct{}) ([]types.Log, error)
 	RlpHash(x interface{}) (h common.Hash)
 	UnpackLog(smcAbi abi.ABI, out interface{}, event string, data []byte) error
@@ -191,21 +192,15 @@ func (u *utils) SendContractTransaction(signMethod ISign, chainId *big.Int, fn f
 // It returns
 // - the signature,
 // - and/or any error
-func (u *utils) SignTypedData(typedData core.TypedData, signMethod ISign) (hexutil.Bytes, error) {
-	return u.signTypedData(typedData, signMethod)
+func (u *utils) SignTypedData(typedData core.TypedData, chainId int64, withdrawalId int64, recipient common.Address, token common.Address, amount int64, fee int64, signMethod ISign) (hexutil.Bytes, error) {
+	return u.signTypedData(typedData, chainId, withdrawalId, recipient, token, amount, fee, signMethod)
 }
 
 // signTypedData is identical to the capitalized version
-func (u *utils) signTypedData(typedData core.TypedData, signMethod ISign) (hexutil.Bytes, error) {
-	domainSeparator, err := typedData.HashStruct("EIP712Domain", typedData.Domain.Map())
-	if err != nil {
-		return nil, err
-	}
-	typedDataHash, err := typedData.HashStruct(typedData.PrimaryType, typedData.Message)
-	if err != nil {
-		return nil, err
-	}
-	rawData := []byte(fmt.Sprintf("\x19\x01%s%s", string(domainSeparator), string(typedDataHash)))
+func (u *utils) signTypedData(typedData core.TypedData, chainId int64, withdrawalId int64, recipient common.Address, token common.Address, amount int64, fee int64, signMethod ISign) (hexutil.Bytes, error) {
+	data := []byte(fmt.Sprintf("%s%s%s%s%s%s%s", string("0x74944e95f91fa4cc71995985fbc8a2287d6ff9be3ff90c7534ca34a977d858ac"), string(rune(chainId)), string(rune(withdrawalId)), string(recipient.Hex()), string(token.Hex()), string(rune(amount)), string(rune(fee))))
+	hash := crypto.Keccak256Hash(data)
+	rawData := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n32%s", hash))
 	signature, err := signMethod.Sign(rawData, "non-ether")
 	if err != nil {
 		return nil, err

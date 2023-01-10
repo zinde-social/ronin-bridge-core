@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	bridge_contracts "github.com/axieinfinity/bridge-contracts"
+	csb_bridge_contracts "github.com/Crossbell-Box/bridge-contracts"
 	"github.com/axieinfinity/bridge-core/adapters"
 	"github.com/axieinfinity/bridge-core/metrics"
 	"github.com/axieinfinity/bridge-core/stores"
@@ -154,7 +154,7 @@ func (c *Controller) LoadABIsFromConfig(lsConfig *LsConfig) (err error) {
 			continue
 		}
 		// load abi for handler
-		if subscription.Handler.ABI, err = bridge_contracts.ABIMaps[subscription.Handler.Contract].GetAbi(); err != nil {
+		if subscription.Handler.ABI, err = csb_bridge_contracts.ABIMaps[subscription.Handler.Contract].GetAbi(); err != nil {
 			return err
 		}
 	}

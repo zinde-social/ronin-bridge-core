@@ -23,6 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/signer/core"
+	solsha3 "github.com/miguelmota/go-solidity-sha3"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -198,15 +199,50 @@ func (u *utils) SignTypedData(typedData core.TypedData, chainId int64, withdrawa
 
 // signTypedData is identical to the capitalized version
 func (u *utils) signTypedData(typedData core.TypedData, chainId int64, withdrawalId int64, recipient common.Address, token common.Address, amount int64, fee int64, signMethod ISign) (hexutil.Bytes, error) {
-	data := []byte(fmt.Sprintf("%s%s%s%s%s%s%s", string("0x74944e95f91fa4cc71995985fbc8a2287d6ff9be3ff90c7534ca34a977d858ac"), string(rune(chainId)), string(rune(withdrawalId)), string(recipient.Hex()), string(token.Hex()), string(rune(amount)), string(rune(fee))))
-	hash := crypto.Keccak256Hash(data)
-	rawData := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n32%s", hash))
+	domainSeparator := "0x74944e95f91fa4cc71995985fbc8a2287d6ff9be3ff90c7534ca34a977d858ac"
+
+	// hash
+	hash := solsha3.SoliditySHA3(
+		// types
+		[]string{"bytes32", "uint256", "uint256", "address", "address", "uint256", "uint256"},
+
+		// values
+		[]interface{}{
+			domainSeparator,
+			big.NewInt(chainId),
+			big.NewInt(withdrawalId),
+			recipient,
+			token,
+			big.NewInt(amount),
+			big.NewInt(fee),
+		},
+	)
+
+	// rawData := []byte(fmt.Sprintf("\x19\x01%s%s", string(hash), string(hash)))
+
+	rawData := concatByteSlices(
+		[]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%v", len(hash))),
+		hash,
+	)
+
 	signature, err := signMethod.Sign(rawData, "non-ether")
 	if err != nil {
 		return nil, err
 	}
+
 	signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
+	fmt.Println("the signature is : ", fmt.Sprintf("0x%x", signature))
 	return signature, nil
+}
+
+func concatByteSlices(arrays ...[]byte) []byte {
+	var result []byte
+
+	for _, b := range arrays {
+		result = append(result, b...)
+	}
+
+	return result
 }
 
 func (u *utils) FilterLogs(client EthClient, opts *bind.FilterOpts, contractAddresses []common.Address, filteredMethods map[*abi.ABI]map[string]struct{}) ([]types.Log, error) {

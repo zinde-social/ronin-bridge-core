@@ -68,8 +68,6 @@ type Listener interface {
 	SetPrepareJobChan(chan JobHandler)
 
 	GetValidatorSign() utils.ISign
-	GetVoterSign() utils.ISign
-	GetRelayerSign() utils.ISign
 
 	AddListeners(map[string]Listener)
 
@@ -157,14 +155,15 @@ type Config struct {
 }
 
 type LsConfig struct {
-	ChainId        string        `json:"chainId"`
-	Name           string        `json:"-"`
-	RpcUrl         string        `json:"rpcUrl"`
-	LoadInterval   time.Duration `json:"blockTime"`
-	SafeBlockRange uint64        `json:"safeBlockRange"`
-	FromHeight     uint64        `json:"fromHeight"`
-	TaskInterval   time.Duration `json:"taskInterval"`
-	Disabled       bool          `json:"disabled"`
+	ChainId         string        `json:"chainId"`
+	Name            string        `json:"-"`
+	RpcUrl          string        `json:"rpcUrl"`
+	LoadInterval    time.Duration `json:"blockTime"`
+	SafeBlockRange  uint64        `json:"safeBlockRange"`
+	FromHeight      uint64        `json:"fromHeight"`
+	DomainSeparator string        `json:"domainSeparator"`
+	TaskInterval    time.Duration `json:"taskInterval"`
+	Disabled        bool          `json:"disabled"`
 
 	// TODO: apply more ways to get privatekey. such as: PLAINTEXT, KMS, etc.
 	Secret                 *Secret               `json:"secret"`
@@ -186,8 +185,6 @@ type LsConfig struct {
 
 type Secret struct {
 	Validator *utils.SignMethodConfig `json:"validator"`
-	Voter     *utils.SignMethodConfig `json:"voter"`
-	Relayer   *utils.SignMethodConfig `json:"relayer"`
 }
 
 type Subscribe struct {

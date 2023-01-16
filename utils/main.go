@@ -53,7 +53,7 @@ type Utils interface {
 	Title(text string) string
 	NewEthClient(url string) (EthClient, error)
 	SendContractTransaction(signMethod ISign, chainId *big.Int, fn func(opts *bind.TransactOpts) (*types.Transaction, error)) (*types.Transaction, error)
-	SignTypedData(typedData core.TypedData, chainId int64, withdrawalId int64, recipient common.Address, token common.Address, amount int64, fee int64, signMethod ISign) (hexutil.Bytes, error)
+	SignTypedData(typedData core.TypedData, domainSeparator string, chainId int64, withdrawalId int64, recipient common.Address, token common.Address, amount int64, fee int64, signMethod ISign) (hexutil.Bytes, error)
 	FilterLogs(client EthClient, opts *bind.FilterOpts, contractAddresses []common.Address, filteredMethods map[*abi.ABI]map[string]struct{}) ([]types.Log, error)
 	RlpHash(x interface{}) (h common.Hash)
 	UnpackLog(smcAbi abi.ABI, out interface{}, event string, data []byte) error
@@ -193,14 +193,12 @@ func (u *utils) SendContractTransaction(signMethod ISign, chainId *big.Int, fn f
 // It returns
 // - the signature,
 // - and/or any error
-func (u *utils) SignTypedData(typedData core.TypedData, chainId int64, withdrawalId int64, recipient common.Address, token common.Address, amount int64, fee int64, signMethod ISign) (hexutil.Bytes, error) {
-	return u.signTypedData(typedData, chainId, withdrawalId, recipient, token, amount, fee, signMethod)
+func (u *utils) SignTypedData(typedData core.TypedData, domainSeparator string, chainId int64, withdrawalId int64, recipient common.Address, token common.Address, amount int64, fee int64, signMethod ISign) (hexutil.Bytes, error) {
+	return u.signTypedData(typedData, domainSeparator, chainId, withdrawalId, recipient, token, amount, fee, signMethod)
 }
 
 // signTypedData is identical to the capitalized version
-func (u *utils) signTypedData(typedData core.TypedData, chainId int64, withdrawalId int64, recipient common.Address, token common.Address, amount int64, fee int64, signMethod ISign) (hexutil.Bytes, error) {
-	domainSeparator := "0x74944e95f91fa4cc71995985fbc8a2287d6ff9be3ff90c7534ca34a977d858ac"
-
+func (u *utils) signTypedData(typedData core.TypedData, domainSeparator string, chainId int64, withdrawalId int64, recipient common.Address, token common.Address, amount int64, fee int64, signMethod ISign) (hexutil.Bytes, error) {
 	// hash
 	hash := solsha3.SoliditySHA3(
 		// types

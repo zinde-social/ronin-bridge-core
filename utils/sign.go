@@ -2,24 +2,37 @@ package utils
 
 import (
 	"crypto/ecdsa"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/axieinfinity/bridge-core/metrics"
 	kms "github.com/axieinfinity/ronin-kms-client"
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 )
 
 type SignMethodConfig struct {
-	PlainPrivateKey string         `json:"plainPrivateKey,omitempty"`
-	KmsConfig       *kms.KmsConfig `json:"kmsConfig,omitempty"`
+	PlainPrivateKey string          `json:"plainPrivateKey,omitempty"`
+	KmsConfig       *kms.KmsConfig  `json:"kmsConfig,omitempty"`
+	KeystoreConfig  *KeystoreConfig `json:"keystoreConfig,omitempty"`
+}
+
+type KeystoreConfig struct {
+	KeystorePath string `json:"KeystorePath"`
+	Password     string `json:"password"`
 }
 
 func NewSignMethod(config *SignMethodConfig) (ISign, error) {
 	if config.PlainPrivateKey != "" {
 		return NewPrivateKeySign(config.PlainPrivateKey)
 	} else if config.KmsConfig != nil {
+		return NewKmsSign(config.KmsConfig)
+	} else if config.KeystoreConfig != nil {
 		return NewKmsSign(config.KmsConfig)
 	}
 
@@ -95,4 +108,42 @@ func (kmsSign *KmsSign) Sign(message []byte, dataType string) ([]byte, error) {
 
 func (kmsSign *KmsSign) GetAddress() common.Address {
 	return kmsSign.KmsSign.Address
+}
+
+type KeystoreSign struct {
+	ks      *keystore.KeyStore
+	account accounts.Account
+}
+
+func NewKeystoreSign(KeystoreConfig *KeystoreConfig) (*KeystoreSign, error) {
+
+	ks := keystore.NewKeyStore("./tmp", keystore.StandardScryptN, keystore.StandardScryptP)
+	jsonBytes, err := ioutil.ReadFile(KeystoreConfig.KeystorePath)
+	if err != nil {
+		fmt.Print("*******1")
+		log.Error("[Keystore] Failed to read keystore file", "error", err)
+	}
+
+	account, err := ks.Import(jsonBytes, KeystoreConfig.Password, KeystoreConfig.Password)
+	if err != nil {
+		fmt.Print("*******2")
+		log.Error("[Keystore] Failed to import password", "error", err)
+	}
+
+	// fmt.Println(account.Address.Hex()) // 0x20F8D42FB0F667F2E53930fed426f225752453b3
+
+	if err := os.Remove(KeystoreConfig.KeystorePath); err != nil {
+		fmt.Print("*******3")
+		log.Error("[Keystore] Failed to remove keystore file", "error", err)
+	}
+
+	return &KeystoreSign{
+		ks:      ks,
+		account: account,
+	}, nil
+}
+
+// Sign function receives raw message, not hash of message
+func (KeystoreSign *KeystoreSign) Sign(message []byte, dataType string) ([]byte, error) {
+	return KeystoreSign.ks.SignHash(KeystoreSign.account, message)
 }

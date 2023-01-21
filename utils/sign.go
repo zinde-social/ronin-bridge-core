@@ -2,7 +2,6 @@ package utils
 
 import (
 	"crypto/ecdsa"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
@@ -23,8 +22,8 @@ type SignMethodConfig struct {
 }
 
 type KeystoreConfig struct {
-	KeystorePath string `json:"KeystorePath"`
-	Password     string `json:"password"`
+	KeystorePath string `json:"keystorePath,omitempty"`
+	Password     string `json:"password,omitempty"`
 }
 
 func NewSignMethod(config *SignMethodConfig) (ISign, error) {
@@ -33,7 +32,7 @@ func NewSignMethod(config *SignMethodConfig) (ISign, error) {
 	} else if config.KmsConfig != nil {
 		return NewKmsSign(config.KmsConfig)
 	} else if config.KeystoreConfig != nil {
-		return NewKmsSign(config.KmsConfig)
+		return NewKeystoreSign(config.KeystoreConfig)
 	}
 
 	log.Warn("No sign methods provided")
@@ -116,27 +115,21 @@ type KeystoreSign struct {
 }
 
 func NewKeystoreSign(KeystoreConfig *KeystoreConfig) (*KeystoreSign, error) {
-
 	ks := keystore.NewKeyStore("./tmp", keystore.StandardScryptN, keystore.StandardScryptP)
 	jsonBytes, err := ioutil.ReadFile(KeystoreConfig.KeystorePath)
 	if err != nil {
-		fmt.Print("*******1")
 		log.Error("[Keystore] Failed to read keystore file", "error", err)
 	}
 
 	account, err := ks.Import(jsonBytes, KeystoreConfig.Password, KeystoreConfig.Password)
 	if err != nil {
-		fmt.Print("*******2")
 		log.Error("[Keystore] Failed to import password", "error", err)
 	}
-
-	// fmt.Println(account.Address.Hex()) // 0x20F8D42FB0F667F2E53930fed426f225752453b3
-
 	if err := os.Remove(KeystoreConfig.KeystorePath); err != nil {
-		fmt.Print("*******3")
 		log.Error("[Keystore] Failed to remove keystore file", "error", err)
 	}
 
+	ks.Unlock(account, KeystoreConfig.Password)
 	return &KeystoreSign{
 		ks:      ks,
 		account: account,
@@ -145,5 +138,9 @@ func NewKeystoreSign(KeystoreConfig *KeystoreConfig) (*KeystoreSign, error) {
 
 // Sign function receives raw message, not hash of message
 func (KeystoreSign *KeystoreSign) Sign(message []byte, dataType string) ([]byte, error) {
-	return KeystoreSign.ks.SignHash(KeystoreSign.account, message)
+	return KeystoreSign.ks.SignHash(KeystoreSign.account, crypto.Keccak256(message))
+}
+
+func (KeystoreSign *KeystoreSign) GetAddress() common.Address {
+	return KeystoreSign.account.Address
 }

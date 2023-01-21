@@ -216,8 +216,6 @@ func (u *utils) signTypedData(typedData core.TypedData, domainSeparator string, 
 		},
 	)
 
-	// rawData := []byte(fmt.Sprintf("\x19\x01%s%s", string(hash), string(hash)))
-
 	rawData := concatByteSlices(
 		[]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%v", len(hash))),
 		hash,

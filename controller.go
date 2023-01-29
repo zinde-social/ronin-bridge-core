@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	csb_bridge_contracts "github.com/Crossbell-Box/bridge-contracts"
 	"github.com/axieinfinity/bridge-core/adapters"
+	csb_bridge_contracts "github.com/axieinfinity/bridge-core/bridge-contracts"
 	"github.com/axieinfinity/bridge-core/metrics"
 	"github.com/axieinfinity/bridge-core/stores"
 	"github.com/axieinfinity/bridge-core/utils"

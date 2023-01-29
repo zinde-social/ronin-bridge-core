@@ -161,7 +161,6 @@ type LsConfig struct {
 	LoadInterval     time.Duration     `json:"blockTime"`
 	SafeBlockRange   uint64            `json:"safeBlockRange"`
 	FromHeight       uint64            `json:"fromHeight"`
-	DomainSeparator  string            `json:"domainSeparator"` // todo: remove this
 	DomainSeparators map[uint64]string `json:"domainSeparators"`
 	TaskInterval     time.Duration     `json:"taskInterval"`
 	Disabled         bool              `json:"disabled"`

@@ -22,8 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/signer/core"
-	solsha3 "github.com/miguelmota/go-solidity-sha3"
+	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -53,7 +52,7 @@ type Utils interface {
 	Title(text string) string
 	NewEthClient(url string) (EthClient, error)
 	SendContractTransaction(signMethod ISign, chainId *big.Int, fn func(opts *bind.TransactOpts) (*types.Transaction, error)) (*types.Transaction, error)
-	SignTypedData(typedData core.TypedData, domainSeparator string, chainId int64, withdrawalId int64, recipient common.Address, token common.Address, amount int64, fee int64, signMethod ISign) (hexutil.Bytes, error)
+	SignTypedData(typedData apitypes.TypedData, signMethod ISign) (hexutil.Bytes, error)
 	FilterLogs(client EthClient, opts *bind.FilterOpts, contractAddresses []common.Address, filteredMethods map[*abi.ABI]map[string]struct{}) ([]types.Log, error)
 	RlpHash(x interface{}) (h common.Hash)
 	UnpackLog(smcAbi abi.ABI, out interface{}, event string, data []byte) error
@@ -85,13 +84,13 @@ func (u *utils) Invoke(any interface{}, name string, args ...interface{}) (refle
 		}
 		argValue := reflect.ValueOf(args[i])
 		if !argValue.IsValid() {
-			return reflect.ValueOf(nil), fmt.Errorf("Method %s. Param[%d] must be %s. Have %s", name, i, inType, argValue.String())
+			return reflect.ValueOf(nil), fmt.Errorf("method %s. Param[%d] must be %s. Have %s", name, i, inType, argValue.String())
 		}
 		argType := argValue.Type()
 		if argType.ConvertibleTo(inType) {
 			in[i] = argValue.Convert(inType)
 		} else {
-			return reflect.ValueOf(nil), fmt.Errorf("Method %s. Param[%d] must be %s. Have %s", name, i, inType, argType)
+			return reflect.ValueOf(nil), fmt.Errorf("method %s. Param[%d] must be %s. Have %s", name, i, inType, argType)
 		}
 	}
 	return method.Call(in)[0], nil
@@ -193,52 +192,27 @@ func (u *utils) SendContractTransaction(signMethod ISign, chainId *big.Int, fn f
 // It returns
 // - the signature,
 // - and/or any error
-func (u *utils) SignTypedData(typedData core.TypedData, domainSeparator string, chainId int64, withdrawalId int64, recipient common.Address, token common.Address, amount int64, fee int64, signMethod ISign) (hexutil.Bytes, error) {
-	return u.signTypedData(typedData, domainSeparator, chainId, withdrawalId, recipient, token, amount, fee, signMethod)
+func (u *utils) SignTypedData(typedData apitypes.TypedData, signMethod ISign) (hexutil.Bytes, error) {
+	return u.signTypedData(typedData, signMethod)
 }
 
 // signTypedData is identical to the capitalized version
-func (u *utils) signTypedData(typedData core.TypedData, domainSeparator string, chainId int64, withdrawalId int64, recipient common.Address, token common.Address, amount int64, fee int64, signMethod ISign) (hexutil.Bytes, error) {
-	// hash
-	hash := solsha3.SoliditySHA3(
-		// types
-		[]string{"bytes32", "uint256", "uint256", "address", "address", "uint256", "uint256"},
-
-		// values
-		[]interface{}{
-			domainSeparator,
-			big.NewInt(chainId),
-			big.NewInt(withdrawalId),
-			recipient,
-			token,
-			big.NewInt(amount),
-			big.NewInt(fee),
-		},
-	)
-
-	rawData := concatByteSlices(
-		[]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%v", len(hash))),
-		hash,
-	)
-
+func (u *utils) signTypedData(typedData apitypes.TypedData, signMethod ISign) (hexutil.Bytes, error) {
+	domainSeparator, err := typedData.HashStruct("EIP712Domain", typedData.Domain.Map())
+	if err != nil {
+		return nil, err
+	}
+	typedDataHash, err := typedData.HashStruct(typedData.PrimaryType, typedData.Message)
+	if err != nil {
+		return nil, err
+	}
+	rawData := []byte(fmt.Sprintf("\x19\x01%s%s", string(domainSeparator), string(typedDataHash)))
 	signature, err := signMethod.Sign(rawData, "non-ether")
 	if err != nil {
 		return nil, err
 	}
-
 	signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
-	fmt.Println("the signature is : ", fmt.Sprintf("0x%x", signature))
 	return signature, nil
-}
-
-func concatByteSlices(arrays ...[]byte) []byte {
-	var result []byte
-
-	for _, b := range arrays {
-		result = append(result, b...)
-	}
-
-	return result
 }
 
 func (u *utils) FilterLogs(client EthClient, opts *bind.FilterOpts, contractAddresses []common.Address, filteredMethods map[*abi.ABI]map[string]struct{}) ([]types.Log, error) {

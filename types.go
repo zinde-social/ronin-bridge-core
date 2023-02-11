@@ -30,6 +30,7 @@ type Listener interface {
 
 	Period() time.Duration
 	GetSafeBlockRange() uint64
+	GetPreventOmissionRange() uint64
 	GetCurrentBlock() Block
 	GetLatestBlock() (Block, error)
 	GetLatestBlockHeight() (uint64, error)
@@ -155,15 +156,16 @@ type Config struct {
 }
 
 type LsConfig struct {
-	ChainId          string            `json:"chainId"`
-	Name             string            `json:"-"`
-	RpcUrl           string            `json:"rpcUrl"`
-	LoadInterval     time.Duration     `json:"blockTime"`
-	SafeBlockRange   uint64            `json:"safeBlockRange"`
-	FromHeight       uint64            `json:"fromHeight"`
-	DomainSeparators map[uint64]string `json:"domainSeparators"`
-	TaskInterval     time.Duration     `json:"taskInterval"`
-	Disabled         bool              `json:"disabled"`
+	ChainId              string            `json:"chainId"`
+	Name                 string            `json:"-"`
+	RpcUrl               string            `json:"rpcUrl"`
+	LoadInterval         time.Duration     `json:"blockTime"`
+	SafeBlockRange       uint64            `json:"safeBlockRange"`
+	PreventOmissionRange uint64            `json:"preventOmissionRange"`
+	FromHeight           uint64            `json:"fromHeight"`
+	DomainSeparators     map[uint64]string `json:"domainSeparators"`
+	TaskInterval         time.Duration     `json:"taskInterval"`
+	Disabled             bool              `json:"disabled"`
 
 	// TODO: apply more ways to get privatekey. such as: PLAINTEXT, KMS, etc.
 	Secret                 *Secret               `json:"secret"`

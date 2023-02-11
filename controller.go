@@ -358,7 +358,8 @@ func (c *Controller) processBehindBlock(listener Listener, height, latestBlockHe
 			err               error
 			processedToHeight uint64
 		)
-		safeBlock, err = listener.GetBlock(latestBlockHeight - listener.GetSafeBlockRange())
+		safeBlock, err = listener.GetBlock(latestBlockHeight - listener.GetSafeBlockRange() - listener.GetPreventOmissionRange())
+
 		if err != nil {
 			log.Error("[Controller][Process] error while getting safeBlock", "err", err, "latest", latestBlockHeight)
 			return err

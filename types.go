@@ -166,6 +166,7 @@ type LsConfig struct {
 	PreventOmissionRange uint64            `json:"preventOmissionRange"`
 	FromHeight           uint64            `json:"fromHeight"`
 	DomainSeparators     map[uint64]string `json:"domainSeparators"`
+	Decimals             map[uint64]uint64 `json:"decimals"`
 	TaskInterval         time.Duration     `json:"taskInterval"`
 	Disabled             bool              `json:"disabled"`
 

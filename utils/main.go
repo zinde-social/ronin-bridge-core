@@ -12,6 +12,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/shopspring/decimal"
 	"golang.org/x/crypto/sha3"
 
 	kmsUtils "github.com/axieinfinity/ronin-kms-client/utils"
@@ -56,6 +57,7 @@ type Utils interface {
 	FilterLogs(client EthClient, opts *bind.FilterOpts, contractAddresses []common.Address, filteredMethods map[*abi.ABI]map[string]struct{}) ([]types.Log, error)
 	RlpHash(x interface{}) (h common.Hash)
 	UnpackLog(smcAbi abi.ABI, out interface{}, event string, data []byte) error
+	ToDecimal(ivalue interface{}, decimals uint64) decimal.Decimal
 }
 
 type utils struct{}
@@ -277,4 +279,20 @@ func (u *utils) UnpackLog(smcAbi abi.ABI, out interface{}, event string, data []
 		}
 	}
 	return abi.ParseTopics(out, indexed, log.Topics[1:])
+}
+
+func (u *utils) ToDecimal(ivalue interface{}, decimals uint64) decimal.Decimal {
+	value := new(big.Int)
+	switch v := ivalue.(type) {
+	case string:
+		value.SetString(v, 10)
+	case *big.Int:
+		value = v
+	}
+
+	mul := decimal.NewFromFloat(float64(10)).Pow(decimal.NewFromFloat(float64(decimals)))
+	num, _ := decimal.NewFromString(value.String())
+	result := num.Div(mul)
+
+	return result
 }

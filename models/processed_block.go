@@ -5,7 +5,7 @@ import (
 )
 
 type ProcessedBlock struct {
-	ChainId string `json:"chainId" gorm:"primary_key:true;column:chain_id;"`
+	ChainId string `json:"id" gorm:"primary_key:true;column:id;"`
 	Block   int64  `json:"block" gorm:"column:block;not null"`
 }
 

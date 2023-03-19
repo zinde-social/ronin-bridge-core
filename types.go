@@ -158,7 +158,7 @@ type Config struct {
 
 type LsConfig struct {
 	ChainId              string            `json:"chainId"`
-	Name                 string            `json:"-"`
+	Name                 string            `json:"name"`
 	RpcUrl               string            `json:"rpcUrl"`
 	SlackUrl             string            `json:"slackUrl"`
 	LoadInterval         time.Duration     `json:"blockTime"`

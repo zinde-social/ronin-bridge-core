@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/ecdsa"
+	"errors"
 	"io/ioutil"
 	"os"
 	"time"
@@ -115,21 +116,30 @@ type KeystoreSign struct {
 }
 
 func NewKeystoreSign(KeystoreConfig *KeystoreConfig) (*KeystoreSign, error) {
+	if KeystoreConfig == nil {
+		return nil, errors.New("KeystoreConfig is nil")
+	}
 	ks := keystore.NewKeyStore("./tmp", keystore.StandardScryptN, keystore.StandardScryptP)
 	jsonBytes, err := ioutil.ReadFile(KeystoreConfig.KeystorePath)
 	if err != nil {
 		log.Error("[Keystore] Failed to read keystore file", "error", err)
 	}
+	log.Info("[Keystore] Successfully read keystore file", "keystore Path", KeystoreConfig.KeystorePath)
 
 	account, err := ks.Import(jsonBytes, KeystoreConfig.Password, KeystoreConfig.Password)
+	log.Info("[Keystore] Failed to import password", "error", err, "length of keystore jsonBytes", len(jsonBytes), "length of password", len(KeystoreConfig.Password))
 	if err != nil {
-		log.Error("[Keystore] Failed to import password", "error", err)
+		log.Error("[Keystore] Failed to import password", "error", err, "length of keystore jsonBytes", len(jsonBytes), "length of password", len(KeystoreConfig.Password))
 	}
 	if err := os.Remove(KeystoreConfig.KeystorePath); err != nil {
 		log.Error("[Keystore] Failed to remove keystore file", "error", err)
 	}
 
-	ks.Unlock(account, KeystoreConfig.Password)
+	if err := ks.Unlock(account, KeystoreConfig.Password); err != nil {
+		log.Error("[Keystore] Failed to unlock account", "error", err)
+		return nil, err
+	}
+
 	return &KeystoreSign{
 		ks:      ks,
 		account: account,

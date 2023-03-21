@@ -146,6 +146,7 @@ type TaskHandler interface {
 type Config struct {
 	Listeners       map[string]*LsConfig `json:"listeners"`
 	SlackUrl        string               `json:"slackUrl"`
+	ScanUrl         string               `json:"scanUrl"`
 	NumberOfWorkers int                  `json:"numberOfWorkers"`
 	MaxQueueSize    int                  `json:"maxQueueSize"`
 	MaxRetry        int32                `json:"maxRetry"`
@@ -161,6 +162,7 @@ type LsConfig struct {
 	Name                 string            `json:"name"`
 	RpcUrl               string            `json:"rpcUrl"`
 	SlackUrl             string            `json:"slackUrl"`
+	ScanUrl              string            `json:"scanUrl"`
 	LoadInterval         time.Duration     `json:"blockTime"`
 	SafeBlockRange       uint64            `json:"safeBlockRange"`
 	PreventOmissionRange uint64            `json:"preventOmissionRange"`

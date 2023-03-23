@@ -169,6 +169,7 @@ type LsConfig struct {
 	FromHeight           uint64            `json:"fromHeight"`
 	DomainSeparators     map[uint64]string `json:"domainSeparators"`
 	Decimals             map[uint64]uint64 `json:"decimals"`
+	ScanUrls             map[uint64]string `json:"scanUrls"`
 	TaskInterval         time.Duration     `json:"taskInterval"`
 	Disabled             bool              `json:"disabled"`
 
